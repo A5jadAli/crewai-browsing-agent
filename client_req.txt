@@ -1,0 +1,34 @@
+AI Agent Provide web browser functionality as an agent, along with related tools, for a CrewAI example. The browsing agent should perform tasks such as: 
+- Web Navigation 
+- Data Extraction
+- User Simulation 
+It should address use cases like information retrieval and testing. The agent must be designed as a 
+general-purpose browsing agent, without task-specific code. Individual tasks should be solved dynamically by the agent. The web browser functionality should be 
+similar to BrowsingAgent by VRSEN. (https://github.com/VRSEN/agency-swarm/tree/main/agency_swarm/agents/BrowsingAgent) For reference, also review the CrewAI 
+BrowserBaseLoadTool. 
+
+Tasks to Test the Agent:
+-> News Extraction 
+1) Navigate to cnn.com. 
+2) Go to the “Business” section. 
+3) Extract the text from the last 4 news articles in this section. 
+
+-> Weather Lookup: 
+1) Navigate to https://www.accuweather.com/. 
+2) Look up the weather for Berlin (the capital of Germany). 
+3) Extract the current weather data in a JSON format. 
+
+Framework Overview The CrewAI framework is widely supported and commonly used. (https://www.crewai.com/) The project is open source and available at https://github.com/crewAIInc/crewAI. The new agent will integrate into an AI agency with agents designed for software development. These 
+agents will form a SCRUM team for general-purpose coding tasks. Use the CrewAI framework to build the browsing agent and related tools, adhering to its structural 
+conventions.Examples and references: https://github.com/crewAIInc/crewAI-tools Additionally, you may reference my prior experience with AI agents for software 
+development in my own framework: https://github.com/com2u/CrewAI_Framework/blob/main/WebDevelopment_SCRUM_Crew.py
+
+-> Goals and Requirements 
+1) Tool Integration: Enrich the agency with tools for specific agents, including GIT, JIRA, testing, browsing, code review, etc. 
+2) Testing: Test the application thoroughly. Use free tools only.
+3) Platform Support: The application must run locally on Python under both Windows and Linux. 
+4) Development Standards: Follow common development practices. Adhere to CrewAI's structural conventions. 
+
+Showcase Tasks: Provide the two test tasks as examples of the agent’s functionality. 
+Deployment Documentation: Include a README.md file detailing how to deploy the application. Test the deployment on a headless remote 
+server.
