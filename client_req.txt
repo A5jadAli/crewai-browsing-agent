@@ -2,10 +2,9 @@ AI Agent Provide web browser functionality as an agent, along with related tools
 - Web Navigation 
 - Data Extraction
 - User Simulation 
-It should address use cases like information retrieval and testing. The agent must be designed as a 
-general-purpose browsing agent, without task-specific code. Individual tasks should be solved dynamically by the agent. The web browser functionality should be 
-similar to BrowsingAgent by VRSEN. (https://github.com/VRSEN/agency-swarm/tree/main/agency_swarm/agents/BrowsingAgent) For reference, also review the CrewAI 
-BrowserBaseLoadTool. 
+It should address use cases like information retrieval and testing. The agent must be designed as a general-purpose browsing agent, without task-specific code. Individual tasks should be solved dynamically by the agent. The web browser functionality should be 
+similar to BrowsingAgent by VRSEN. (https://github.com/VRSEN/agency-swarm/tree/main/agency_swarm/agents/BrowsingAgent) 
+For reference, also review the CrewAI BrowserBaseLoadTool. 
 
 Tasks to Test the Agent:
 -> News Extraction 
