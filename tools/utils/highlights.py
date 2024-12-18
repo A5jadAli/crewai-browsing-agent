@@ -1,17 +1,15 @@
-from typing import Union
-from selenium.webdriver import WebDriver
+def highlight_elements_with_labels(driver, selector):
+    """
+    Highlights elements on the page that match the given CSS selector by adding a red border and labels.
 
-class HighlightUtility:
-    @staticmethod
-    def highlight_elements_with_labels(driver: WebDriver, selector: str) -> WebDriver:
-        """
-        Highlight elements matching the given CSS selector with red borders and numbered labels.
+    Parameters:
+        driver: Selenium WebDriver instance.
+        selector: CSS selector for the elements to be highlighted.
 
-        :param driver: Selenium WebDriver instance
-        :param selector: CSS selector for elements to highlight
-        :return: Modified WebDriver instance
-        """
-        script = f"""
+    Returns:
+        Updated WebDriver instance with highlighted elements.
+    """
+    script = f"""
         // Helper function to check if an element is visible
         function isElementVisible(element) {{
             var rect = element.getBoundingClientRect();
@@ -34,16 +32,14 @@ class HighlightUtility:
             return true;
         }}
 
-        // Remove previous labels and styles
-        document.querySelectorAll('.highlight-label').forEach(function(label) {{
-            label.remove();
-        }});
-        document.querySelectorAll('.highlighted-element').forEach(function(element) {{
+        // Remove previous labels and highlights
+        document.querySelectorAll('.highlight-label').forEach(label => label.remove());
+        document.querySelectorAll('.highlighted-element').forEach(element => {{
             element.classList.remove('highlighted-element');
             element.removeAttribute('data-highlighted');
         }});
 
-        // Inject custom highlighting style
+        // Inject custom styles for highlighting
         var styleElement = document.getElementById('highlight-style');
         if (!styleElement) {{
             styleElement = document.createElement('style');
@@ -73,7 +69,7 @@ class HighlightUtility:
             }}
         `;
 
-        // Function to create and append a label to the body
+        // Function to create and append labels
         function createAndAdjustLabel(element, index) {{
             if (!isElementVisible(element)) return;
 
@@ -83,7 +79,7 @@ class HighlightUtility:
             label.textContent = index.toString();
             label.style.display = 'block';
 
-            // Calculate label position
+            // Position the label
             var rect = element.getBoundingClientRect();
             var top = rect.top + window.scrollY - 25;
             var left = rect.left + window.scrollX;
@@ -94,49 +90,50 @@ class HighlightUtility:
             document.body.appendChild(label);
         }}
 
-        // Select and highlight elements
+        // Apply highlighting to matching elements
         var allElements = document.querySelectorAll('{selector}');
         var index = 1;
-        allElements.forEach(function(element) {{
+        allElements.forEach(element => {{
             if (!element.dataset.highlighted && isElementVisible(element)) {{
                 element.dataset.highlighted = 'true';
                 createAndAdjustLabel(element, index++);
             }}
         }});
-        """
+    """
 
-        driver.execute_script(script)
-        return driver
+    driver.execute_script(script)
+    return driver
 
-    @staticmethod
-    def remove_highlight_and_labels(driver: WebDriver) -> WebDriver:
-        """
-        Remove all red borders and labels from webpage elements.
 
-        :param driver: Selenium WebDriver instance
-        :return: Modified WebDriver instance
-        """
-        selector = (
-            'a, button, input, textarea, div[onclick], div[role="button"], div[tabindex], '
-            'span[onclick], span[role="button"], span[tabindex]'
-        )
-        script = f"""
+def remove_highlight_and_labels(driver):
+    """
+    Removes all highlights and labels from the page, reverting the changes made by the highlighting function.
+
+    Parameters:
+        driver: Selenium WebDriver instance.
+
+    Returns:
+        Updated WebDriver instance with highlights removed.
+    """
+    selector = (
+        'a, button, input, textarea, div[onclick], div[role="button"], div[tabindex], '
+        'span[onclick], span[role="button"], span[tabindex]'
+    )
+    script = f"""
         // Remove all labels
-        document.querySelectorAll('.highlight-label').forEach(function(label) {{
-            label.remove();
-        }});
+        document.querySelectorAll('.highlight-label').forEach(label => label.remove());
 
-        // Remove the added style for red borders
+        // Remove custom style for highlights
         var highlightStyle = document.getElementById('highlight-style');
         if (highlightStyle) {{
             highlightStyle.remove();
         }}
 
-        // Remove inline styles added by highlighting function
-        document.querySelectorAll('{selector}').forEach(function(element) {{
+        // Remove inline styles for highlighted elements
+        document.querySelectorAll('{selector}').forEach(element => {{
             element.style.border = '';
         }});
-        """
+    """
 
-        driver.execute_script(script)
-        return driver
+    driver.execute_script(script)
+    return driver
