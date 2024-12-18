@@ -1,182 +1,140 @@
-import os
-from crewai import Agent, Crew, Task
-from crewai_tools import SeleniumScrapingTool, WebsiteSearchTool
-import re
 import base64
-import openai
+import re
+from crewai import Agent
+from tools.selenium import set_selenium_config, get_web_driver, set_web_driver
+from tools.highlights import highlight_elements_with_labels, remove_highlight_and_labels
+from tools.get_b64_screenshot import get_b64_screenshot
+from tools import (
+    ClickElement,
+    ExportFile,
+    GoBack,
+    ReadURL,
+    Scroll,
+    SelectDropdown,
+    SendKeys,
+    SolveCaptcha,
+    WebPageSummarizer,
+)
 
-class CrewAIBrowsingAgent:
-    def __init__(self, openai_api_key=None, selenium_config=None):
+
+class BrowsingAgent:
+    SCREENSHOT_FILE_NAME = "screenshot.jpg"
+
+    def __init__(self, selenium_config=None, **kwargs):
         """
-        Initialize the CrewAI Browsing Agency
-        
-        :param openai_api_key: OpenAI API key for vision capabilities
-        :param selenium_config: Optional Selenium configuration dictionary
+        Initialize the BrowsingAgent with CrewAI-compatible tools.
         """
-        # Set API keys
-        if openai_api_key:
-            openai.api_key = openai_api_key
-        
-        # Initialize tools
-        self.web_search_tool = WebsiteSearchTool()
-        self.selenium_tool = SeleniumScrapingTool(
-            config=selenium_config or {}
-        )
-        
-        # Define browsing agent
-        self.browsing_agent = self._create_browsing_agent()
-        
-        # Shared state for tracking
-        self.prev_message = ""
-        self.screenshot_file_name = "screenshot.jpg"
-    
-    def _create_browsing_agent(self):
-        """
-        Create the primary browsing agent with specialized tools and instructions
-        """
-        return Agent(
-            role='Web Browsing Specialist',
-            goal='Navigate and search the web effectively while following strict browsing protocols',
-            backstory='An expert web navigator who follows precise instructions for web interaction, '
-                      'ensuring methodical and controlled web browsing',
-            verbose=True,
-            memory=True,
+        self.agent = Agent(
+            role="Web Browsing Assistant",
+            goal="Navigate and search the web effectively for user queries.",
+            backstory="An expert agent skilled in web navigation and interaction.",
             tools=[
-                self.web_search_tool,
-                self.selenium_tool
+                ClickElement(),
+                ExportFile(),
+                GoBack(),
+                ReadURL(),
+                Scroll(),
+                SelectDropdown(),
+                SendKeys(),
+                SolveCaptcha(),
+                WebPageSummarizer(),
             ],
-            allow_delegation=False
+            **kwargs,
         )
-    
-    def create_browsing_task(self, objective):
+        if selenium_config:
+            set_selenium_config(selenium_config)
+
+        self.prev_message = ""
+
+    def validate_response(self, message):
         """
-        Create a task for web browsing with specific objective
-        
-        :param objective: The specific web browsing task to accomplish
-        :return: CrewAI Task object
+        Validates agent responses to avoid redundancy and manage web interactions.
         """
-        return Task(
-            description=objective,
-            agent=self.browsing_agent,
-            tools=[self.web_search_tool, self.selenium_tool]
-        )
-    
-    def validate_message(self, message):
-        """
-        Validate and process special browsing commands
-        
-        :param message: Input message to validate
-        :return: Processed message or raise special command handler
-        """
-        # Remove content in square brackets
         filtered_message = re.sub(r"\[.*?\]", "", message).strip()
-        
-        # Prevent message repetition
+
         if filtered_message and self.prev_message == filtered_message:
             raise ValueError(
-                "Do not repeat yourself. If you are stuck, try a different approach or search in Google."
+                "Do not repeat yourself. If stuck, try a different approach or search directly on Google."
             )
-        
+
         self.prev_message = filtered_message
-        
-        # Special command handlers
-        special_commands = {
-            "[send screenshot]": self._handle_screenshot,
-            "[highlight clickable elements]": self._highlight_clickable_elements,
-            "[highlight text fields]": self._highlight_text_fields,
-            "[highlight dropdowns]": self._highlight_dropdowns
-        }
-        
-        # Check for special commands
-        for command, handler in special_commands.items():
-            if command.lower() in message.lower():
-                return handler()
-        
-        return message
-    
-    def _handle_screenshot(self):
+        return filtered_message
+
+    def process_command(self, command):
         """
-        Take and process a screenshot
+        Process specific browsing-related commands.
         """
-        # Placeholder for screenshot logic
-        # In actual implementation, this would use Selenium to capture screenshot
-        screenshot_path = self.screenshot_file_name
-        
-        with open(screenshot_path, "rb") as file:
-            file_id = self._upload_file_to_vision(file)
-        
-        return {
-            "type": "image_response",
-            "content": [
-                {"type": "text", "text": "Here is the screenshot of the current web page:"},
-                {"type": "image_file", "image_file": {"file_id": file_id}}
-            ]
-        }
-    
-    def _highlight_clickable_elements(self):
+        wd = get_web_driver()
+
+        if command == "[send screenshot]":
+            remove_highlight_and_labels(wd)
+            self.take_screenshot()
+            response_text = "Here is the screenshot of the current web page."
+
+        elif command == "[highlight clickable elements]":
+            highlight_elements_with_labels(
+                wd, 'a, button, div[onclick], div[role="button"], div[tabindex], span[onclick], span[role="button"], span[tabindex]'
+            )
+            response_text = self._get_highlighted_elements_response(wd)
+
+        elif command == "[highlight text fields]":
+            highlight_elements_with_labels(wd, "input, textarea")
+            response_text = self._get_highlighted_elements_response(wd)
+
+        elif command == "[highlight dropdowns]":
+            highlight_elements_with_labels(wd, "select")
+            response_text = self._get_highlighted_dropdowns_response(wd)
+
+        else:
+            return command
+
+        set_web_driver(wd)
+        return response_text
+
+    def take_screenshot(self):
         """
-        Highlight and process clickable elements
+        Takes a screenshot of the current web page and saves it.
         """
-        # Placeholder for element highlighting logic
-        return "Clickable elements highlighting not implemented in this version"
-    
-    def _highlight_text_fields(self):
+        wd = get_web_driver()
+        screenshot = get_b64_screenshot(wd)
+        screenshot_data = base64.b64decode(screenshot)
+        with open(self.SCREENSHOT_FILE_NAME, "wb") as screenshot_file:
+            screenshot_file.write(screenshot_data)
+
+    def _get_highlighted_elements_response(self, wd):
         """
-        Highlight and process text fields
+        Generate response for highlighted elements.
         """
-        # Placeholder for text field highlighting logic
-        return "Text fields highlighting not implemented in this version"
-    
-    def _highlight_dropdowns(self):
-        """
-        Highlight and process dropdown elements
-        """
-        # Placeholder for dropdown highlighting logic
-        return "Dropdown highlighting not implemented in this version"
-    
-    def _upload_file_to_vision(self, file):
-        """
-        Upload file for vision processing
-        
-        :param file: File object to upload
-        :return: File ID from OpenAI
-        """
-        return openai.File.create(
-            file=file,
-            purpose="vision"
-        ).id
-    
-    def execute_browsing_task(self, objective):
-        """
-        Execute a browsing task
-        
-        :param objective: Browsing task objective
-        :return: Task execution result
-        """
-        # Create crew with the browsing agent and task
-        browsing_crew = Crew(
-            agents=[self.browsing_agent],
-            tasks=[self.create_browsing_task(objective)]
+        all_elements = wd.find_elements_by_css_selector(".highlighted-element")
+        all_element_texts = [element.text.strip() for element in all_elements if element.text]
+
+        elements_formatted = ", ".join(
+            [f"{i + 1}: {text}" for i, text in enumerate(all_element_texts)]
         )
-        
-        # Execute the crew
-        return browsing_crew.kickoff()
 
-def main():
-    # Example usage
-    browsing_agency = CrewAIBrowsingAgent(
-        openai_api_key=os.getenv('OPENAI_API_KEY'),
-        # Optional Selenium configuration
-        selenium_config={
-            # Add any specific Selenium configurations
-        }
-    )
-    
-    # Example task
-    result = browsing_agency.execute_browsing_task(
-        "Search for information about artificial intelligence trends in 2024"
-    )
-    print(result)
+        return (
+            "Here is the screenshot of the current web page with highlighted elements. "
+            f"Texts of the elements are: {elements_formatted}."
+        )
 
-if __name__ == "__main__":
-    main()
+    def _get_highlighted_dropdowns_response(self, wd):
+        """
+        Generate response for highlighted dropdowns.
+        """
+        all_elements = wd.find_elements_by_css_selector(".highlighted-element")
+        dropdown_data = {}
+
+        for i, element in enumerate(all_elements, start=1):
+            options = [
+                option.text.strip() for option in element.find_elements_by_tag_name("option")
+            ]
+            dropdown_data[str(i)] = options[:10]  # Limit options for clarity
+
+        dropdowns_formatted = ", ".join(
+            [f"{key}: {', '.join(values)}" for key, values in dropdown_data.items()]
+        )
+
+        return (
+            "Here is the screenshot of the current web page with highlighted dropdowns. "
+            f"Dropdown options are: {dropdowns_formatted}."
+        )
