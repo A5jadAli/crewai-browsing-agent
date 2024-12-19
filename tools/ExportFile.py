@@ -2,7 +2,7 @@ import base64
 from crewai_tools import tool
 from pydantic import Field
 
-from .util import get_web_driver
+from .util.selenium import get_web_driver
 from crewai.utils import get_openai_client
 
 @tool("Export current web page as a file")

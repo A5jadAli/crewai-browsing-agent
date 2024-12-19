@@ -3,7 +3,7 @@ from pydantic import Field
 from selenium.webdriver.common.by import By
 from crewai_tools import tool
 
-from .util import get_web_driver, set_web_driver
+from .util.selenium import get_web_driver, set_web_driver
 from .util.highlights import remove_highlight_and_labels
 
 @tool("Click on a highlighted element")
