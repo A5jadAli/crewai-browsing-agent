@@ -1,9 +1,9 @@
 import base64
 import re
 from crewai import Agent
-from tools.selenium import set_selenium_config, get_web_driver, set_web_driver
-from tools.highlights import highlight_elements_with_labels, remove_highlight_and_labels
-from tools.get_b64_screenshot import get_b64_screenshot
+from tools.util.selenium import set_selenium_config, get_web_driver, set_web_driver
+from tools.util.highlights import highlight_elements_with_labels, remove_highlight_and_labels
+from tools.util.screenshot import get_b64_screenshot
 from tools import (
     ClickElement,
     ExportFile,
