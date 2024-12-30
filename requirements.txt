@@ -3,3 +3,5 @@ crewai[tools]
 selenium
 webdriver-manager 
 selenium-stealth
+langchain_openai
+python-dotenv
