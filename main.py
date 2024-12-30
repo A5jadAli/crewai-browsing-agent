@@ -1,5 +1,7 @@
 import base64
 import re
+import os
+from dotenv import load_dotenv
 from crewai import Agent
 from tools.util.selenium import set_selenium_config, get_web_driver, set_web_driver
 from tools.util.highlights import highlight_elements_with_labels, remove_highlight_and_labels
@@ -15,14 +17,30 @@ from tools import (
     SolveCaptcha,
     WebPageSummarizer,
 )
+from langchain_openai import ChatOpenAI
 
+# Load environment variables
+load_dotenv()
+
+# Initialize OpenRouter LLM
+openrouter_llm = ChatOpenAI(
+    model="anthropic/claude-3.5-sonnet",
+    openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+    openai_api_base="https://openrouter.ai/api/v1",
+    default_headers={
+        "HTTP-Referer": "https://www.ai-server.org/",
+        "X-Title": "My Browsing Agent",
+    },
+    temperature=0.3,
+    streaming=True,
+)
 
 class BrowsingAgent:
     SCREENSHOT_FILE_NAME = "screenshot.jpg"
 
     def __init__(self, selenium_config=None, **kwargs):
         """
-        Initialize the BrowsingAgent with CrewAI-compatible tools.
+        Initialize the BrowsingAgent with CrewAI-compatible tools and OpenRouter LLM.
         """
         self.agent = Agent(
             role="Web Browsing Assistant",
@@ -39,6 +57,7 @@ class BrowsingAgent:
                 SolveCaptcha(),
                 WebPageSummarizer(),
             ],
+            llm=openrouter_llm,  # Use OpenRouter for LLM interactions
             **kwargs,
         )
         if selenium_config:
@@ -138,3 +157,8 @@ class BrowsingAgent:
             "Here is the screenshot of the current web page with highlighted dropdowns. "
             f"Dropdown options are: {dropdowns_formatted}."
         )
+
+# Test BrowsingAgent with OpenRouter
+if __name__ == "__main__":
+    agent = BrowsingAgent()
+    print("Initialized BrowsingAgent with OpenRouter.")
