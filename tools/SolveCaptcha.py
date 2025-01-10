@@ -148,7 +148,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from crewai_tools import tool
 
 from .util.selenium import get_web_driver
-from .util import get_b64_screenshot, remove_highlight_and_labels
+from .util.screenshot import get_b64_screenshot 
+from .util.highlights import remove_highlight_and_labels
 
 @tool("Solve reCAPTCHA challenges")
 class SolveCaptcha:
