@@ -296,27 +296,52 @@ def main():
     setup_streamlit()
     show_examples()
 
-    # Chat interface
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    # Add feedback mechanism
+    if st.sidebar.button("📋 Show Command History"):
+        st.sidebar.write("Recent commands:")
+        for msg in st.session_state.messages[-5:]:
+            if msg["role"] == "user":
+                st.sidebar.write(f"- {msg['content']}")
+                
+    # Add help button
+    if st.sidebar.button("❓ Need Help?"):
+        st.sidebar.markdown("""
+        Try these patterns:
+        1. Action + Object: "click login button"
+        2. Task + Details: "search for laptops under $1000"
+        3. Website + Action: "go to amazon.com and find phones"
+        """)
 
+    # Chat interface with error handling
     if prompt := st.chat_input("What would you like me to help you with?"):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
+            st.session_state.messages.append({"role": "user", "content": prompt})
 
-        # Get assistant response
         with st.chat_message("assistant"):
             with st.spinner("Working on it..."):
-                response = st.session_state.agent.process_task(prompt)
-                st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-        # Show any screenshots taken
-        if os.path.exists(BrowsingAgent.SCREENSHOT_FILE_NAME):
-            st.image(BrowsingAgent.SCREENSHOT_FILE_NAME, caption="Screenshot of results")
+                try:
+                    response = st.session_state.agent.process_task(prompt)
+                    
+                    # Check if response seems incomplete
+                    if len(response) < 20:
+                        clarification = st.session_state.agent.clarify_request(prompt)
+                        response += f"\n\n{clarification}"
+                        
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    
+                    # Add feedback buttons
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("👍 This helped"):
+                            st.write("Thanks for the feedback!")
+                    with col2:
+                        if st.button("👎 Not what I needed"):
+                            st.write("I'll try to do better. Could you rephrase your request?")
+                            
+                except Exception as e:
+                    st.error(f"I ran into an issue: {str(e)}\nPlease try rephrasing your request.")
 
 if __name__ == "__main__":
     main()
