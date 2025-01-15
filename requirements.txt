@@ -5,3 +5,4 @@ webdriver-manager
 selenium-stealth
 langchain_openai
 python-dotenv
+google-cloud
